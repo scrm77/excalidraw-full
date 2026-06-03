@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -226,6 +227,12 @@ func HandleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !isGitHubUserAllowed(githubUser.Login, githubUser.ID) {
+		logrus.Warnf("login denied: github user %q (id %d) not in ALLOWED_GITHUB_USERS", githubUser.Login, githubUser.ID)
+		http.Error(w, "Access denied: this Excalidraw instance is private. Your GitHub account is not authorized.", http.StatusForbidden)
+		return
+	}
+
 	// Create user object using Subject instead of GitHubID
 	user := &core.User{
 		Subject:   fmt.Sprintf("github:%d", githubUser.ID),
@@ -243,6 +250,27 @@ func HandleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 
 	// Redirect to frontend with token
 	http.Redirect(w, r, fmt.Sprintf("/?token=%s", jwtToken), http.StatusTemporaryRedirect)
+}
+
+// isGitHubUserAllowed enforces the ALLOWED_GITHUB_USERS allowlist
+// (comma-separated GitHub logins and/or numeric IDs).
+// Empty/unset = open (no restriction, preserves upstream behavior).
+func isGitHubUserAllowed(login string, id int64) bool {
+	allow := strings.TrimSpace(os.Getenv("ALLOWED_GITHUB_USERS"))
+	if allow == "" {
+		return true
+	}
+	idStr := fmt.Sprintf("%d", id)
+	for _, e := range strings.Split(allow, ",") {
+		e = strings.TrimSpace(e)
+		if e == "" {
+			continue
+		}
+		if strings.EqualFold(e, login) || e == idStr {
+			return true
+		}
+	}
+	return false
 }
 
 func HandleOIDCLogin(w http.ResponseWriter, r *http.Request) {
