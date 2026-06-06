@@ -7,6 +7,7 @@ import (
 	"excalidraw-complete/core"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -20,10 +21,24 @@ type sqliteStore struct {
 
 // NewStore creates a new SQLite-based store.
 func NewStore(dataSourceName string) *sqliteStore {
-	db, err := sql.Open("sqlite", dataSourceName)
+	// SQLite is a single-writer engine. Append sane pragmas unless the DSN
+	// already carries query params: busy_timeout makes a blocked writer wait
+	// instead of erroring, WAL improves read/write concurrency.
+	dsn := dataSourceName
+	if !strings.Contains(dsn, "?") {
+		dsn += "?_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)"
+	}
+
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		log.Fatalf("failed to open sqlite database: %v", err)
 	}
+
+	// Cap the pool at one connection: writes serialize cleanly (no
+	// "database is locked" races), and a connection left in a half-open
+	// transaction can never be silently reused for the next request.
+	db.SetMaxOpenConns(1)
+	db.SetConnMaxLifetime(0)
 
 	// Initialize table for anonymous documents
 	docTableStmt := `CREATE TABLE IF NOT EXISTS documents (id TEXT PRIMARY KEY, data BLOB);`
@@ -123,6 +138,13 @@ func (s *sqliteStore) Get(ctx context.Context, userID, id string) (*core.Canvas,
 }
 
 func (s *sqliteStore) Save(ctx context.Context, canvas *core.Canvas) error {
+	// Detach from the request context: if the client disconnects mid-write a
+	// cancelled context can leave the pooled connection inside an open
+	// transaction ("cannot start a transaction within a transaction"), which
+	// then breaks every subsequent write until the process restarts. The
+	// write is tiny, so always letting it run to completion is safe.
+	ctx = context.WithoutCancel(ctx)
+
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
