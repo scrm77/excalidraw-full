@@ -21,6 +21,10 @@ Keep the private multi-canvas product and owner API while replacing the old edit
 5. Build and test the frontend and Go backend before production deployment.
 6. Back up and integrity-check SQLite before switching the production container.
 
+## Update policy
+
+The monthly GitHub Actions check compares the pinned editor with official Excalidraw and opens or refreshes one review issue when updates exist. Updates are reviewed and tested; they are never deployed automatically.
+
 ## Acceptance checks
 
 - The app loads and the editor can create, edit, export, and reopen a scene.
