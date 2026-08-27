@@ -143,17 +143,23 @@ func setupRouter(store stores.Store) *chi.Mux {
 	})
 
 	r.Route("/api/v2", func(r chi.Router) {
-		// Route for canvases, protected by JWT auth
+		// Canvas routes accept the regular login JWT and the owner's personal API
+		// token. The owner token cannot delete canvases.
 		r.Group(func(r chi.Router) {
-			r.Use(authMiddleware.AuthJWT)
+			r.Use(authMiddleware.AuthJWTOrOwnerAPI)
 			r.Route("/kv", func(r chi.Router) {
 				r.Get("/", kv.HandleListCanvases(store))
 				r.Route("/{key}", func(r chi.Router) {
 					r.Get("/", kv.HandleGetCanvas(store))
 					r.Put("/", kv.HandleSaveCanvas(store))
-					r.Delete("/", kv.HandleDeleteCanvas(store))
+					r.With(authMiddleware.ForbidOwnerAPIDelete).Delete("/", kv.HandleDeleteCanvas(store))
 				})
 			})
+		})
+
+		// The OpenAI proxy remains available only to interactive login sessions.
+		r.Group(func(r chi.Router) {
+			r.Use(authMiddleware.AuthJWT)
 			r.Route("/chat", func(r chi.Router) {
 				r.Post("/completions", openai.HandleChatCompletion())
 			})

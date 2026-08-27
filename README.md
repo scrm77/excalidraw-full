@@ -92,6 +92,8 @@ You must configure GitHub OAuth and a JWT secret for the application to function
 - `GITHUB_CLIENT_SECRET`: Your GitHub OAuth App's Client Secret.
 - `GITHUB_REDIRECT_URL`: The callback URL. For local testing, this is `http://localhost:3002/auth/callback`.
 - `JWT_SECRET`: A strong, random string for signing session tokens. Generate one with `openssl rand -base64 32`.
+- `DRAW_MEATBAGS_OWNER_API_TOKEN`: Optional long-lived personal token for canvas automation. Generate it with `openssl rand -hex 32`. It can list, read, and update the owner's canvases, but cannot delete them or call the OpenAI proxy.
+- `DRAW_MEATBAGS_OWNER_API_USER_ID`: Canvas owner identity in the form `github:<numeric-id>`, for example `github:123456`.
 - `OPENAI_API_KEY`: Your secret key from OpenAI.
 - `OPENAI_BASE_URL`: (Optional) For using compatible APIs like Azure OpenAI.
 
@@ -129,6 +131,11 @@ GITHUB_REDIRECT_URL=http://localhost:3002/auth/callback
 # Generate with: openssl rand -base64 32
 JWT_SECRET=your_super_secret_jwt_string
 
+# Optional owner automation API
+# Generate with: openssl rand -hex 32
+DRAW_MEATBAGS_OWNER_API_TOKEN=your_personal_owner_token
+DRAW_MEATBAGS_OWNER_API_USER_ID=github:123456
+
 # Default Storage (SQLite)
 STORAGE_TYPE=sqlite
 DATA_SOURCE_NAME=excalidraw.db
@@ -136,6 +143,17 @@ DATA_SOURCE_NAME=excalidraw.db
 # Optional OpenAI Proxy
 OPENAI_API_KEY=sk-your_openai_api_key
 ```
+
+### Owner Canvas API
+
+The optional owner token uses the existing canvas API:
+
+- `GET /api/v2/kv/` lists canvas metadata.
+- `GET /api/v2/kv/{canvas-id}/` returns the Excalidraw JSON scene.
+- `PUT /api/v2/kv/{canvas-id}/` creates or updates a scene.
+- `DELETE` is intentionally forbidden for the owner token.
+
+Send the token as `Authorization: Bearer ...`. Keep it in a secrets manager and do not commit it to the repository or print it in logs.
 
 ## Building from Source
 
