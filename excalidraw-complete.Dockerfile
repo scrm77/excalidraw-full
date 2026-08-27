@@ -12,9 +12,13 @@ RUN apk update && apk add --no-cache git
 WORKDIR /app
 ARG TARGETOS
 ARG TARGETARCH
+ARG GOPROXY=https://proxy.golang.com.cn,direct
 # 复制 Go 模块文件
 COPY go.mod go.sum ./
-RUN go mod download
+# proxy.golang.org redirects module archives to Google Storage, which is not
+# reachable from every deployment region. The mirror still uses go.sum and
+# sum.golang.org verification, with direct VCS fetch as a fallback.
+RUN GOPROXY=$GOPROXY go mod download
 # 复制源代码
 COPY . .
 # 复制前端构建文件到正确位置，以便 Go embed 可以找到
