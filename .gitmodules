@@ -1,4 +1,4 @@
 [submodule "excalidraw"]
 	path = excalidraw
-	url = https://github.com/BetterAndBetterII/excalidraw.git
-	branch = multi-canvas
+	url = https://github.com/scrm77/excalidraw.git
+	branch = codex/modern-multicanvas
