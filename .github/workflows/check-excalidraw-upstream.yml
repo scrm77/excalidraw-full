@@ -13,10 +13,12 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
-          submodules: true
           fetch-depth: 0
+
+      - name: Check out the editor submodule
+        run: git submodule update --init --depth 1 excalidraw
 
       - name: Compare pinned editor with official master
         id: upstream
