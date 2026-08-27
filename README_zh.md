@@ -7,7 +7,7 @@ Excalidraw Full 已经进化。它不再仅仅是 Excalidraw 的一个简单封�
 ## 与官方 Excalidraw 的核心区别
 
 - **完全自托管的协作与分享**: 与官方版 Excalidraw 不同，所有的实时协作和分享功能都由您自己部署的后端服务处理，确保了数据的私密性和可控性。
-- **强大的多画布管理**: 您可以轻松创建、保存和管理多个画布。数据可以存储在服务器后端（如 SQLite、S3），也可以由前端直接连接到您自己的云存储（如 Cloudflare KV），实现了真正的"数据主权"。
+- **强大的多画布管理**: 您可以轻松创建、保存和管理多个画布，并选择仅存储在当前浏览器中或同步到私有服务器。
 - **开箱即用的 AI 功能**: 无需复杂的客户端配置，登录后即可直接使用集成的 OpenAI 功能（如 GPT-4 Vision），API 密钥由后端安全管理，前端只负责调用。
 
 
@@ -24,9 +24,9 @@ Excalidraw Full 已经进化。它不再仅仅是 Excalidraw 的一个简单封�
 
 - **GitHub 认证**：使用 GitHub OAuth 安全登录。
 - **多画板管理**：用户可以创建、保存和管理多个绘图画板。
-- **灵活的数据存储 (BYOC)**：
-    - **默认后端存储**：开箱即用地支持将画板保存在服务器的存储中（SQLite、文件系统、S3）。
-    - **直接云连接**：前端可以直接连接到您自己的云服务，如 **Cloudflare KV** 或 **Amazon S3**，以实现终极数据主权。您的凭证永远不会触及我们的服务器。
+- **清晰的数据存储方式**：
+    - **浏览器存储**：无需登录，将可编辑画板保存在 IndexedDB 中。
+    - **私有服务器存储**：使用允许的 GitHub 账户登录，通过已配置的后端同步画板。
 - **实时协作**：完全支持经典的 Excalidraw 实时协作功能。
 - **安全的 OpenAI 代理**：一个可选的后端代理，用于使用 OpenAI 的 GPT-4 Vision 功能，确保您的 API 密钥安全。
 - **一体化二进制文件**：整个应用程序，包括打过补丁的前端和后端服务器，都被编译成一个单一的 Go 二进制文件，便于部署。
@@ -35,16 +35,14 @@ Excalidraw Full 已经进化。它不再仅仅是 Excalidraw 的一个简单封�
 
 - **IndexedDB**: 一种快速、安全且可扩展的键值存储。无需任何配置，也无需登录。
 - **后端存储**: 后端可以将画板保存到服务器的存储中（SQLite、文件系统、S3）。可在不同设备间同步。
-- **Cloudflare KV**: 一种快速、安全且可扩展的键值存储。这需要您在自己的 Cloudflare 账户中部署一个配套的 Worker。请参阅 [**Cloudflare Worker 部署指南**](./cloudflare-worker/README.md) 获取详细说明。
-- **Amazon S3**: 一种可靠、可扩展且经济的对象存储服务。
 
 ## 安装与运行
 
-一键 Docker 运行 [Excalidraw-Full](https://github.com/BetterAndBetterII/excalidraw-full).
+Docker 部署源码：[scrm77/excalidraw-full](https://github.com/scrm77/excalidraw-full)。
 
 ```bash
 # Linux 示例
-git clone https://github.com/BetterAndBetterII/excalidraw-full.git
+git clone https://github.com/scrm77/excalidraw-full.git
 cd excalidraw-full
 mv .env.example .env
 touch ./excalidraw.db  # 重要：初始化 SQLite 数据库，否则无法启动
@@ -59,7 +57,7 @@ docker compose up -d
 
 ```bash
 # 示例
-git clone https://github.com/BetterAndBetterII/excalidraw-full.git
+git clone https://github.com/scrm77/excalidraw-full.git
 cd excalidraw-full
 mv .env.example.dex .env
 touch ./excalidraw.db  # 重要：初始化 SQLite 数据库，否则无法启动
@@ -112,7 +110,7 @@ sed -i "s|ADMIN_PASSWORD_HASH=.*|ADMIN_PASSWORD_HASH='$(cat .htpasswd)'|" .env
 
 ### 4. 前端配置
 
-前端存储适配器（如 Cloudflare KV, S3）在您登录后直接在应用程序的 UI 设置中配置。这是特意设计的：您的私有云凭证只存储在浏览器的会话中，绝不会发送到后端服务器。
+选择 **This browser only** 可使用本地 IndexedDB 存储；使用允许的 GitHub 账户登录后，选择 **My server (online)** 可使用私有服务器。切换存储方式不会自动迁移现有画板。
 
 ### `.env.example` 示例
 
@@ -178,4 +176,4 @@ docker run -p 3002:3002 \
     ```
 ---
 
-Excalidraw 是一个很棒的工具。该项目旨在让每个人都能使用一个功能强大、数据安全的版本。欢迎贡献！ 
+Excalidraw 是一个很棒的工具。该项目旨在让每个人都能使用一个功能强大、数据安全的版本。欢迎贡献！

@@ -9,7 +9,7 @@ The core idea is to let the backend handle user identity while giving you, the u
 ## Core Differences from Official Excalidraw
 
 - **Fully Self-Hosted Collaboration & Sharing**: Unlike the official version, all real-time collaboration and sharing features are handled by your own self-hosted backend, ensuring complete data privacy and control.
-- **Advanced Multi-Canvas Management**: Seamlessly create, save, and manage multiple canvases. Store your work on the server's backend (e.g., SQLite, S3) or connect the frontend directly to your personal cloud storage (e.g., Cloudflare KV) for true data sovereignty.
+- **Advanced Multi-Canvas Management**: Seamlessly create, save, and manage multiple canvases in this browser or on your private server.
 - **Zero-Config AI Features**: Instantly access integrated OpenAI features like GPT-4 Vision after logging in—no complex client-side setup required. API keys are securely managed by the backend.
 
 ![Multi-Canvas Management](./img/PixPin_2025-07-06_16-07-27.png)
@@ -24,9 +24,9 @@ The core idea is to let the backend handle user identity while giving you, the u
 
 - **GitHub Authentication**: Secure sign-in using GitHub OAuth.
 - **Multi-Canvas Management**: Users can create, save, and manage multiple drawing canvases.
-- **Flexible Data Storage (BYOC)**:
-    - **Default Backend Storage**: Out-of-the-box support for saving canvases on the server's storage (SQLite, Filesystem, S3).
-    - **Direct Cloud Connection**: The frontend can connect directly to your own cloud services like **Cloudflare KV** or **Amazon S3** for ultimate data sovereignty. Your credentials never touch our server.
+- **Clear Data Storage**:
+    - **Browser Storage**: Keep editable canvases in IndexedDB without signing in.
+    - **Private Server Storage**: Sign in with an allowed GitHub account and sync canvases through the configured backend.
 - **Real-time Collaboration**: The classic Excalidraw real-time collaboration is fully supported.
 - **Secure OpenAI Proxy**: An optional backend proxy for using OpenAI's GPT-4 Vision features, keeping your API key safe.
 - **All-in-One Binary**: The entire application, including the patched frontend and backend server, is compiled into a single Go binary for easy deployment.
@@ -35,16 +35,14 @@ The core idea is to let the backend handle user identity while giving you, the u
 
 - **IndexedDB**: A fast, secure, and scalable key-value store. No need to configure anything. Not login required.
 - **Backend Storage**: The backend can save the canvas to the server's storage (SQLite, Filesystem, S3). Synchronized in different devices.
-- **Cloudflare KV**: A fast, secure, and scalable key-value store. This requires deploying a companion Worker to your Cloudflare account. See the [**Cloudflare Worker Deployment Guide**](./cloudflare-worker/README.md) for detailed instructions.
-- **Amazon S3**: A reliable, scalable, and inexpensive object storage service. 
 
 ## Installation & Running
 
-One Click Docker run [Excalidraw-Full](https://github.com/BetterAndBetterII/excalidraw-full).
+Docker deployment source: [scrm77/excalidraw-full](https://github.com/scrm77/excalidraw-full).
 
 ```bash
 # Example for Linux
-git clone https://github.com/BetterAndBetterII/excalidraw-full.git
+git clone https://github.com/scrm77/excalidraw-full.git
 cd excalidraw-full
 mv .env.example .env
 touch ./excalidraw.db  # IMPORTANT: Initialize the SQLite DB, OTHERWISE IT WILL NOT START
@@ -60,7 +58,7 @@ The server will start, and you can access the application at `http://localhost:3
 
 ```bash
 # Example for Linux
-git clone https://github.com/BetterAndBetterII/excalidraw-full.git
+git clone https://github.com/scrm77/excalidraw-full.git
 cd excalidraw-full
 mv .env.example.dex .env
 touch ./excalidraw.db  # IMPORTANT: Initialize the SQLite DB, OTHERWISE IT WILL NOT START
@@ -115,7 +113,7 @@ To enable AI features, set your OpenAI API key.
 
 ### 4. Frontend Configuration
 
-Frontend storage adapters (like Cloudflare KV, S3) are configured directly in the application's UI settings after you log in. This is by design: your private cloud credentials are only ever stored in your browser's session and are never sent to the backend server.
+Choose **This browser only** for local IndexedDB storage or **My server (online)** after signing in with an allowed GitHub account. Switching storage modes does not migrate existing canvases automatically.
 
 ### Example `.env.example`
 
