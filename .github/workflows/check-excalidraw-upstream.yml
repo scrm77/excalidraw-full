@@ -24,7 +24,11 @@ jobs:
         id: upstream
         shell: bash
         run: |
-          git -C excalidraw remote add official https://github.com/excalidraw/excalidraw.git || true
+          if git -C excalidraw remote get-url official >/dev/null 2>&1; then
+            git -C excalidraw remote set-url official https://github.com/excalidraw/excalidraw.git
+          else
+            git -C excalidraw remote add official https://github.com/excalidraw/excalidraw.git
+          fi
           git -C excalidraw fetch --quiet official master
           echo "pinned=$(git -C excalidraw rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "latest=$(git -C excalidraw rev-parse official/master)" >> "$GITHUB_OUTPUT"
@@ -36,7 +40,7 @@ jobs:
 
       - name: Open or update the monthly review issue
         if: steps.upstream.outputs.behind == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const title = "Excalidraw upstream update available";
