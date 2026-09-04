@@ -64,25 +64,9 @@ func TestOwnerAPICanvasRoundTrip(t *testing.T) {
 	}
 }
 
-func TestAnonymousShareDocumentCreationIsRejected(t *testing.T) {
+func TestAnonymousShareDocumentCreationIsAllowed(t *testing.T) {
 	router := setupRouter(memory.NewStore())
 	req := httptest.NewRequest(http.MethodPost, "/api/v2/post/", strings.NewReader("encrypted-payload"))
-	response := httptest.NewRecorder()
-
-	router.ServeHTTP(response, req)
-
-	if response.Code != http.StatusUnauthorized {
-		t.Fatalf("POST status = %d, want %d; body=%s", response.Code, http.StatusUnauthorized, response.Body.String())
-	}
-}
-
-func TestOwnerAPICanCreateShareDocument(t *testing.T) {
-	t.Setenv("DRAW_MEATBAGS_OWNER_API_TOKEN", testOwnerToken)
-	t.Setenv("DRAW_MEATBAGS_OWNER_API_USER_ID", "github:5765513")
-
-	router := setupRouter(memory.NewStore())
-	req := httptest.NewRequest(http.MethodPost, "/api/v2/post/", strings.NewReader("encrypted-payload"))
-	req.Header.Set("Authorization", "Bearer "+testOwnerToken)
 	response := httptest.NewRecorder()
 
 	router.ServeHTTP(response, req)
