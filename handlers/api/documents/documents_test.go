@@ -1,6 +1,7 @@
 package documents
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -49,5 +50,51 @@ func TestClientIPUsesLastForwardedAddress(t *testing.T) {
 
 	if got, want := clientIP(req), "198.51.100.30"; got != want {
 		t.Fatalf("clientIP() = %q, want %q", got, want)
+	}
+}
+
+func TestShareLimitNotifierSendsAtMostOncePerCooldown(t *testing.T) {
+	type alertRequest struct {
+		authorization string
+		body          map[string]string
+	}
+	received := make(chan alertRequest, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body := map[string]string{}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("decode alert body: %v", err)
+		}
+		received <- alertRequest{authorization: r.Header.Get("Authorization"), body: body}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	now := time.Unix(1_000, 0)
+	notifier := &shareLimitNotifier{
+		now:      func() time.Time { return now },
+		cooldown: time.Hour,
+		url:      server.URL,
+		token:    "test-token",
+		client:   server.Client(),
+	}
+	notifier.Notify("198.51.100.10")
+	notifier.Notify("198.51.100.11")
+
+	select {
+	case request := <-received:
+		if got, want := request.authorization, "Bearer test-token"; got != want {
+			t.Fatalf("Authorization = %q, want %q", got, want)
+		}
+		if got, want := request.body["unit"], "anonymous-share-rate-limit"; got != want {
+			t.Fatalf("unit = %q, want %q", got, want)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("alert was not sent")
+	}
+
+	select {
+	case <-received:
+		t.Fatal("second alert was sent during cooldown")
+	case <-time.After(100 * time.Millisecond):
 	}
 }

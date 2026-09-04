@@ -1,0 +1,91 @@
+version: 1
+metadata:
+  name: Draw Meatbags - Admin-issued password recovery
+entries:
+  - identifiers:
+      slug: draw-admin-recovery
+    id: flow
+    model: authentik_flows.flow
+    attrs:
+      name: Draw admin recovery
+      title: Set your Draw Meatbags password
+      designation: recovery
+      authentication: require_unauthenticated
+
+  - identifiers:
+      name: draw-recovery-password
+    id: password
+    model: authentik_stages_prompt.prompt
+    attrs:
+      field_key: password
+      label: Password
+      type: password
+      required: true
+      order: 0
+
+  - identifiers:
+      name: draw-recovery-password-repeat
+    id: password-repeat
+    model: authentik_stages_prompt.prompt
+    attrs:
+      field_key: password_repeat
+      label: Password (repeat)
+      type: password
+      required: true
+      order: 1
+
+  - identifiers:
+      name: draw-recovery-password-stage
+    id: password-stage
+    model: authentik_stages_prompt.promptstage
+    attrs:
+      fields:
+        - !KeyOf password
+        - !KeyOf password-repeat
+
+  - identifiers:
+      name: draw-recovery-write
+    id: write-stage
+    model: authentik_stages_user_write.userwritestage
+    attrs:
+      user_creation_mode: never_create
+
+  - identifiers:
+      name: draw-recovery-login
+    id: login-stage
+    model: authentik_stages_user_login.userloginstage
+
+  - identifiers:
+      name: draw-recovery-requires-admin-link
+    id: restored-policy
+    model: authentik_policies_expression.expressionpolicy
+    attrs:
+      expression: |
+        return bool(request.context.get("is_restored", False))
+
+  - identifiers:
+      target: !KeyOf flow
+      stage: !KeyOf password-stage
+      order: 10
+    id: password-binding
+    model: authentik_flows.flowstagebinding
+    attrs:
+      evaluate_on_plan: true
+
+  - identifiers:
+      policy: !KeyOf restored-policy
+      target: !KeyOf password-binding
+      order: 0
+    model: authentik_policies.policybinding
+
+  - identifiers:
+      target: !KeyOf flow
+      stage: !KeyOf write-stage
+      order: 20
+    model: authentik_flows.flowstagebinding
+
+  - identifiers:
+      target: !KeyOf flow
+      stage: !KeyOf login-stage
+      order: 100
+    model: authentik_flows.flowstagebinding

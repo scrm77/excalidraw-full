@@ -2,10 +2,12 @@ package documents
 
 import (
 	"bytes"
+	"encoding/json"
 	"excalidraw-complete/core"
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -35,6 +37,16 @@ type (
 		clients   map[string]windowCount
 		all       windowCount
 	}
+	shareLimitNotifier struct {
+		mu       sync.Mutex
+		now      func() time.Time
+		lastSent time.Time
+		sending  bool
+		cooldown time.Duration
+		url      string
+		token    string
+		client   *http.Client
+	}
 )
 
 const (
@@ -42,15 +54,22 @@ const (
 	shareRateWindow       = time.Hour
 	shareRatePerClient    = 20
 	shareRateGlobal       = 100
+	shareAlertCooldown    = time.Hour
 )
 
 func HandleCreate(documentStore core.DocumentStore) http.HandlerFunc {
-	return handleCreate(documentStore, newShareCreateLimiter())
+	return handleCreateWithNotifier(documentStore, newShareCreateLimiter(), newShareLimitNotifier())
 }
 
 func handleCreate(documentStore core.DocumentStore, limiter *shareCreateLimiter) http.HandlerFunc {
+	return handleCreateWithNotifier(documentStore, limiter, newShareLimitNotifier())
+}
+
+func handleCreateWithNotifier(documentStore core.DocumentStore, limiter *shareCreateLimiter, notifier *shareLimitNotifier) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !limiter.Allow(clientIP(r)) {
+		client := clientIP(r)
+		if !limiter.Allow(client) {
+			notifier.Notify(client)
 			w.Header().Set("Retry-After", "3600")
 			render.Status(r, http.StatusTooManyRequests)
 			render.JSON(w, r, ErrorResponse{
@@ -84,6 +103,68 @@ func handleCreate(documentStore core.DocumentStore, limiter *shareCreateLimiter)
 		render.JSON(w, r, DocumentCreateResponse{ID: id})
 		render.Status(r, http.StatusOK)
 	}
+}
+
+func newShareLimitNotifier() *shareLimitNotifier {
+	return &shareLimitNotifier{
+		now:      time.Now,
+		cooldown: shareAlertCooldown,
+		url:      strings.TrimSpace(os.Getenv("OPS_ALERTS_URL")),
+		token:    strings.TrimSpace(os.Getenv("OPS_ALERTS_TOKEN_V2")),
+		client:   &http.Client{Timeout: 10 * time.Second},
+	}
+}
+
+func (n *shareLimitNotifier) Notify(clientIP string) {
+	if n.url == "" || n.token == "" {
+		return
+	}
+
+	n.mu.Lock()
+	now := n.now()
+	if n.sending || (!n.lastSent.IsZero() && now.Sub(n.lastSent) < n.cooldown) {
+		n.mu.Unlock()
+		return
+	}
+	n.sending = true
+	n.mu.Unlock()
+
+	go n.send(clientIP, now)
+}
+
+func (n *shareLimitNotifier) send(clientIP string, sentAt time.Time) {
+	delivered := false
+	defer func() {
+		n.mu.Lock()
+		n.sending = false
+		if delivered {
+			n.lastSent = sentAt
+		}
+		n.mu.Unlock()
+	}()
+
+	body, err := json.Marshal(map[string]string{
+		"state":  "warning",
+		"host":   "draw.meatbags.ru",
+		"unit":   "anonymous-share-rate-limit",
+		"detail": "Anonymous share creation reached a protective limit (20 per client or 100 total per hour); client=" + clientIP,
+	})
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest(http.MethodPost, n.url, bytes.NewReader(body))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+n.token)
+	req.Header.Set("Content-Type", "application/json")
+	response, err := n.client.Do(req)
+	if err != nil {
+		return
+	}
+	_ = response.Body.Close()
+	delivered = response.StatusCode >= http.StatusOK && response.StatusCode < http.StatusMultipleChoices
 }
 
 func newShareCreateLimiter() *shareCreateLimiter {

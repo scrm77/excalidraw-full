@@ -93,6 +93,8 @@ You must configure GitHub OAuth and a JWT secret for the application to function
 - `JWT_TTL`: Optional login-session lifetime as a Go duration (for example, `24h`). Defaults to `168h` (7 days).
 - `DRAW_MEATBAGS_OWNER_API_TOKEN`: Optional long-lived personal token for canvas automation. Generate it with `openssl rand -hex 32`. It can list, read, and update the owner's canvases, but cannot delete them or call the OpenAI proxy.
 - `DRAW_MEATBAGS_OWNER_API_USER_ID`: Canvas owner identity. GitHub identities use `github:<numeric-id>`; OIDC identities use `oidc:<subject>`.
+- `OPS_ALERTS_URL`: Optional operations-alert webhook. When configured together with `OPS_ALERTS_TOKEN_V2`, Draw reports the first anonymous share rate-limit event and stays quiet for the next hour.
+- `OPS_ALERTS_TOKEN_V2`: Bearer token for `OPS_ALERTS_URL`.
 - `OPENAI_API_KEY`: Your secret key from OpenAI.
 - `OPENAI_BASE_URL`: (Optional) For using compatible APIs like Azure OpenAI.
 

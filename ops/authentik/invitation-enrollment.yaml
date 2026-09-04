@@ -1,0 +1,149 @@
+version: 1
+metadata:
+  name: Draw Meatbags - Invitation enrollment
+entries:
+  - identifiers:
+      name: Draw users
+    id: group-draw-users
+    model: authentik_core.group
+    attrs:
+      is_superuser: false
+
+  - identifiers:
+      slug: draw-invitation-enrollment
+    id: flow
+    model: authentik_flows.flow
+    attrs:
+      name: Draw invitation enrollment
+      title: Create your Draw Meatbags account
+      designation: enrollment
+      authentication: require_unauthenticated
+
+  - identifiers:
+      name: draw-invitation-check
+    id: invitation-stage
+    model: authentik_stages_invitation.invitationstage
+    attrs:
+      continue_flow_without_invitation: false
+
+  - identifiers:
+      name: draw-enrollment-username
+    id: username
+    model: authentik_stages_prompt.prompt
+    attrs:
+      field_key: username
+      label: Username
+      type: username
+      required: true
+      order: 0
+
+  - identifiers:
+      name: draw-enrollment-password
+    id: password
+    model: authentik_stages_prompt.prompt
+    attrs:
+      field_key: password
+      label: Password
+      type: password
+      required: true
+      order: 1
+
+  - identifiers:
+      name: draw-enrollment-password-repeat
+    id: password-repeat
+    model: authentik_stages_prompt.prompt
+    attrs:
+      field_key: password_repeat
+      label: Password (repeat)
+      type: password
+      required: true
+      order: 2
+
+  - identifiers:
+      name: draw-enrollment-name
+    id: name
+    model: authentik_stages_prompt.prompt
+    attrs:
+      field_key: name
+      label: Name
+      type: text
+      required: true
+      order: 0
+
+  - identifiers:
+      name: draw-enrollment-email
+    id: email
+    model: authentik_stages_prompt.prompt
+    attrs:
+      field_key: email
+      label: Email
+      type: email
+      required: true
+      order: 1
+
+  - identifiers:
+      name: draw-enrollment-credentials
+    id: credentials-stage
+    model: authentik_stages_prompt.promptstage
+    attrs:
+      fields:
+        - !KeyOf username
+        - !KeyOf password
+        - !KeyOf password-repeat
+
+  - identifiers:
+      name: draw-enrollment-profile
+    id: profile-stage
+    model: authentik_stages_prompt.promptstage
+    attrs:
+      fields:
+        - !KeyOf name
+        - !KeyOf email
+
+  - identifiers:
+      name: draw-enrollment-write
+    id: write-stage
+    model: authentik_stages_user_write.userwritestage
+    attrs:
+      user_creation_mode: always_create
+      user_type: internal
+      user_path_template: users/draw
+      create_users_group: !KeyOf group-draw-users
+
+  - identifiers:
+      name: draw-enrollment-login
+    id: login-stage
+    model: authentik_stages_user_login.userloginstage
+
+  - identifiers:
+      target: !KeyOf flow
+      stage: !KeyOf invitation-stage
+      order: 5
+    model: authentik_flows.flowstagebinding
+    attrs:
+      evaluate_on_plan: true
+      re_evaluate_policies: true
+
+  - identifiers:
+      target: !KeyOf flow
+      stage: !KeyOf credentials-stage
+      order: 10
+    model: authentik_flows.flowstagebinding
+
+  - identifiers:
+      target: !KeyOf flow
+      stage: !KeyOf profile-stage
+      order: 15
+    model: authentik_flows.flowstagebinding
+
+  - identifiers:
+      target: !KeyOf flow
+      stage: !KeyOf write-stage
+      order: 20
+    model: authentik_flows.flowstagebinding
+
+  - identifiers:
+      target: !KeyOf flow
+      stage: !KeyOf login-stage
+      order: 100
+    model: authentik_flows.flowstagebinding
