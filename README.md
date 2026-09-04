@@ -90,8 +90,9 @@ You must configure GitHub OAuth and a JWT secret for the application to function
 - `GITHUB_CLIENT_SECRET`: Your GitHub OAuth App's Client Secret.
 - `GITHUB_REDIRECT_URL`: The callback URL. For local testing, this is `http://localhost:3002/auth/callback`.
 - `JWT_SECRET`: A strong, random string for signing session tokens. Generate one with `openssl rand -base64 32`.
+- `JWT_TTL`: Optional login-session lifetime as a Go duration (for example, `24h`). Defaults to `168h` (7 days).
 - `DRAW_MEATBAGS_OWNER_API_TOKEN`: Optional long-lived personal token for canvas automation. Generate it with `openssl rand -hex 32`. It can list, read, and update the owner's canvases, but cannot delete them or call the OpenAI proxy.
-- `DRAW_MEATBAGS_OWNER_API_USER_ID`: Canvas owner identity in the form `github:<numeric-id>`, for example `github:123456`.
+- `DRAW_MEATBAGS_OWNER_API_USER_ID`: Canvas owner identity. GitHub identities use `github:<numeric-id>`; OIDC identities use `oidc:<subject>`.
 - `OPENAI_API_KEY`: Your secret key from OpenAI.
 - `OPENAI_BASE_URL`: (Optional) For using compatible APIs like Azure OpenAI.
 
