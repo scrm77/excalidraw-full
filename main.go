@@ -165,8 +165,11 @@ func setupRouter(store stores.Store) *chi.Mux {
 			})
 		})
 
-		// Old routes for anonymous document sharing
-		r.Post("/post/", documents.HandleCreate(store))
+		// Creating a persistent share link writes to our storage, so only an
+		// authenticated owner may do it. Reading an existing encrypted document
+		// remains public because the decryption key lives only in the URL hash and
+		// is never sent to the server.
+		r.With(authMiddleware.AuthJWTOrOwnerAPI).Post("/post/", documents.HandleCreate(store))
 		r.Route("/{id}", func(r chi.Router) {
 			r.Get("/", documents.HandleGet(store))
 		})
