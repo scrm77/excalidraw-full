@@ -31,6 +31,7 @@ The monthly GitHub Actions check compares the pinned editor with official Excali
 - GitHub login remains restricted by the configured allowlist.
 - Browser-only canvases survive a reload in the same browser.
 - Server canvases list, save, reopen, rename, and delete.
+- The canvas catalog remains vertically scrollable when its cards are taller than the sidebar.
 - The owner API can list, read, and update a test canvas with readback verification.
 - Mermaid import accepts a normal diagram and rejects unsafe content.
 - The old image and the pre-deploy SQLite copy are sufficient for rollback.
