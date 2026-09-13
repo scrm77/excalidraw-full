@@ -14,7 +14,7 @@ Approved 2026-09-13 in https://github.com/scrm77/excalidraw-full/issues/2.
 
 ## Routing
 
-Install `draw-shared-gate.traefik.yaml` as `/data/coolify/proxy/dynamic/draw-shared-gate.yaml` on OVH. File provider watches it; no shared proxy restart is needed. `board.meatbags.ru` redirects to the protected canonical host, preserving path/query (and browser fragments).
+Install `draw-shared-gate.traefik.yaml` as `/data/coolify/proxy/dynamic/draw-shared-gate.yaml` on OVH. File provider watches it; no shared proxy restart is needed. The only application domain is `https://draw.meatbags.ru`. The owner retired `board.meatbags.ru` on 2026-09-13; do not restore its Coolify domain or alias router.
 
 An explicit narrow exception preserves `/api/v2/kv[/...]` requests carrying Bearer credentials. These always pass through Draw's existing `AuthJWTOrOwnerAPI` middleware: invalid tokens fail 401; the owner automation token retains its existing no-delete restriction. Do not generalize this exception to `/api`, `/v1` or `/socket.io`.
 
@@ -30,9 +30,17 @@ To immediately remove only the new gate, move `/data/coolify/proxy/dynamic/draw-
 
 The optional login-flow env can be removed independently to restore the old direct OIDC redirect. The app/PWA changes are backward-compatible without the gate.
 
+### Retired board alias (2026-09-13)
+
+The owner requested `draw.meatbags.ru` only. Coolify application `wqextdx9prl4zctey0ifojlw` now has a single domain; alias Docker labels are removed when applying the configuration. The file-provider alias router and redirect middleware are also removed. Do not merely remove the gate alias while old Docker routes still expose the retired host.
+
+The shared Beget DNS wildcard `*.meatbags.ru → 135.125.152.14` is intentionally unchanged: unrelated services depend on it. Therefore DNS resolution of `board` can still return that IP, but it must not route to Draw. Verify both HTTP and HTTPS, including `curl --resolve` to bypass resolver caches.
+
+Pre-removal backup on OVH: `/var/backups/draw-meatbags/20260913-remove-board-alias/` contains the previous gate config, app compose and an SQLite online backup. To restore the alias if explicitly requested, add `https://board.meatbags.ru` after the existing Draw domain in Coolify, apply that application configuration, then restore the backed-up gate file. No database restore or shared proxy restart is needed.
+
 ## Verification checklist
 
-- No-cookie requests to root, snapshots and live endpoints redirect to Authentik. Alternate hostname redirects to canonical protected host.
+- No-cookie requests to root, snapshots and live endpoints redirect to Authentik. The retired board hostname must not serve or redirect to Draw, including with a forced origin IP.
 - Invalid Bearer on private API returns 401; actual owner token still lists its own canvases.
 - Guest gate session opens editor; cannot obtain personal OIDC login/token or access owner's catalogue; cannot change shared password or configure MFA.
 - Login after guest session shows personal identity form and returns to Draw after owner authentication.
