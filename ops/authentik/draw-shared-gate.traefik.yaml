@@ -1,0 +1,56 @@
+# Install under /data/coolify/proxy/dynamic/ only after the outpost is verified.
+# Docker service names are stable across Coolify deployments.
+http:
+  middlewares:
+    draw-shared-gate:
+      forwardAuth:
+        address: http://authentik-server-s53o7fhp78fyudxro3kjspad:9000/outpost.goauthentik.io/auth/traefik
+        trustForwardHeader: false
+        authRequestHeaders:
+          - Cookie
+        authResponseHeaders:
+          - X-authentik-username
+    draw-canonical-host:
+      redirectRegex:
+        regex: '^https://board\.meatbags\.ru/(.*)'
+        replacement: 'https://draw.meatbags.ru/${1}'
+        permanent: false
+  routers:
+    # Preserve the owner's existing automation API. This narrow route still
+    # runs Draw's AuthJWTOrOwnerAPI middleware; an invalid Bearer gets 401.
+    # Never extend this exception to snapshot, live or other public routes.
+    draw-private-api:
+      rule: Host(`draw.meatbags.ru`) && (Path(`/api/v2/kv`) || PathPrefix(`/api/v2/kv/`)) && HeaderRegexp(`Authorization`, `(?i)^Bearer .+`)
+      entryPoints: [https]
+      priority: 1050
+      service: https-0-wqextdx9prl4zctey0ifojlw@docker
+      tls:
+        certResolver: letsencrypt
+    draw-shared-gate:
+      rule: Host(`draw.meatbags.ru`)
+      entryPoints: [https]
+      priority: 1000
+      middlewares: [draw-shared-gate]
+      service: https-0-wqextdx9prl4zctey0ifojlw@docker
+      tls:
+        certResolver: letsencrypt
+    draw-shared-gate-outpost:
+      rule: Host(`draw.meatbags.ru`) && PathPrefix(`/outpost.goauthentik.io/`)
+      entryPoints: [https]
+      priority: 1100
+      service: draw-authentik-outpost
+      tls:
+        certResolver: letsencrypt
+    draw-shared-gate-alias:
+      rule: Host(`board.meatbags.ru`)
+      entryPoints: [https]
+      priority: 1000
+      middlewares: [draw-canonical-host]
+      service: https-1-wqextdx9prl4zctey0ifojlw@docker
+      tls:
+        certResolver: letsencrypt
+  services:
+    draw-authentik-outpost:
+      loadBalancer:
+        servers:
+          - url: http://authentik-server-s53o7fhp78fyudxro3kjspad:9000
