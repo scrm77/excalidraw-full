@@ -1,7 +1,7 @@
 """Run with `ak shell` inside the existing Authentik server after a backup.
 
-No passwords or tokens are printed. The shared password is set separately from
-Bitwarden; reruns do not rotate credentials or change the owner's membership.
+No passwords or tokens are printed. The owner sets the shared password in the
+Authentik admin UI; reruns do not rotate it or change the owner's membership.
 """
 
 from django.db import transaction
