@@ -14,7 +14,7 @@ Approved 2026-09-13 in https://github.com/scrm77/excalidraw-full/issues/2.
 
 ## Routing
 
-Install `draw-shared-gate.traefik.yaml` as `/data/coolify/proxy/dynamic/draw-shared-gate.yaml` on OVH. File provider watches it; no shared proxy restart is needed. `board.meatbags.ru` redirects to the protected canonical host, preserving path/query (and browser fragments).
+Install `draw-shared-gate.traefik.yaml` as `/data/coolify/proxy/dynamic/draw-shared-gate.yaml` on OVH. File provider watches it; no shared proxy restart is needed. The only application domain is `https://draw.meatbags.ru`. The owner retired `board.meatbags.ru` on 2026-09-13; do not restore its Coolify domain or alias router.
 
 An explicit narrow exception preserves `/api/v2/kv[/...]` requests carrying Bearer credentials. These always pass through Draw's existing `AuthJWTOrOwnerAPI` middleware: invalid tokens fail 401; the owner automation token retains its existing no-delete restriction. Do not generalize this exception to `/api`, `/v1` or `/socket.io`.
 
@@ -32,7 +32,7 @@ The optional login-flow env can be removed independently to restore the old dire
 
 ## Verification checklist
 
-- No-cookie requests to root, snapshots and live endpoints redirect to Authentik. Alternate hostname redirects to canonical protected host.
+- No-cookie requests to root, snapshots and live endpoints redirect to Authentik. The retired board hostname must not serve or redirect to Draw, including with a forced origin IP.
 - Invalid Bearer on private API returns 401; actual owner token still lists its own canvases.
 - Guest gate session opens editor; cannot obtain personal OIDC login/token or access owner's catalogue; cannot change shared password or configure MFA.
 - Login after guest session shows personal identity form and returns to Draw after owner authentication.

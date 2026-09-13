@@ -10,11 +10,6 @@ http:
           - Cookie
         authResponseHeaders:
           - X-authentik-username
-    draw-canonical-host:
-      redirectRegex:
-        regex: '^https://board\.meatbags\.ru/(.*)'
-        replacement: 'https://draw.meatbags.ru/${1}'
-        permanent: false
   routers:
     # Preserve the owner's existing automation API. This narrow route still
     # runs Draw's AuthJWTOrOwnerAPI middleware; an invalid Bearer gets 401.
@@ -39,14 +34,6 @@ http:
       entryPoints: [https]
       priority: 1100
       service: draw-authentik-outpost
-      tls:
-        certResolver: letsencrypt
-    draw-shared-gate-alias:
-      rule: Host(`board.meatbags.ru`)
-      entryPoints: [https]
-      priority: 1000
-      middlewares: [draw-canonical-host]
-      service: https-1-wqextdx9prl4zctey0ifojlw@docker
       tls:
         certResolver: letsencrypt
   services:
