@@ -30,6 +30,14 @@ To immediately remove only the new gate, move `/data/coolify/proxy/dynamic/draw-
 
 The optional login-flow env can be removed independently to restore the old direct OIDC redirect. The app/PWA changes are backward-compatible without the gate.
 
+### Retired board alias (2026-09-13)
+
+The owner requested `draw.meatbags.ru` only. Coolify application `wqextdx9prl4zctey0ifojlw` now has a single domain; alias Docker labels are removed when applying the configuration. The file-provider alias router and redirect middleware are also removed. Do not merely remove the gate alias while old Docker routes still expose the retired host.
+
+The shared Beget DNS wildcard `*.meatbags.ru → 135.125.152.14` is intentionally unchanged: unrelated services depend on it. Therefore DNS resolution of `board` can still return that IP, but it must not route to Draw. Verify both HTTP and HTTPS, including `curl --resolve` to bypass resolver caches.
+
+Pre-removal backup on OVH: `/var/backups/draw-meatbags/20260913-remove-board-alias/` contains the previous gate config, app compose and an SQLite online backup. To restore the alias if explicitly requested, add `https://board.meatbags.ru` after the existing Draw domain in Coolify, apply that application configuration, then restore the backed-up gate file. No database restore or shared proxy restart is needed.
+
 ## Verification checklist
 
 - No-cookie requests to root, snapshots and live endpoints redirect to Authentik. The retired board hostname must not serve or redirect to Draw, including with a forced origin IP.
