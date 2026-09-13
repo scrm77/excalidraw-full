@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -315,8 +316,38 @@ func HandleOIDCLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url := oidcOauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	loginURL, err := oidcLoginURL(state)
+	if err != nil {
+		logrus.Error("Invalid OIDC login flow configuration")
+		http.Error(w, "Invalid login configuration", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, loginURL, http.StatusTemporaryRedirect)
+}
+
+// An optional explicit identity-provider flow lets a shared gate user switch to
+// their personal identity before the OIDC application's access policy is checked.
+func oidcLoginURL(state string) (string, error) {
+	authorizationURL := oidcOauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	flowURL := strings.TrimSpace(os.Getenv("OIDC_LOGIN_FLOW_URL"))
+	if flowURL == "" {
+		return authorizationURL, nil
+	}
+	flow, err := url.Parse(flowURL)
+	if err != nil {
+		return "", err
+	}
+	authorization, err := url.Parse(authorizationURL)
+	if err != nil {
+		return "", err
+	}
+	if flow.Scheme != "https" || flow.Host == "" || flow.Host != authorization.Host || flow.User != nil || flow.Fragment != "" {
+		return "", fmt.Errorf("login flow must use the HTTPS authorization server origin")
+	}
+	query := flow.Query()
+	query.Set("next", authorization.RequestURI())
+	flow.RawQuery = query.Encode()
+	return flow.String(), nil
 }
 
 func HandleOIDCCallback(w http.ResponseWriter, r *http.Request) {
